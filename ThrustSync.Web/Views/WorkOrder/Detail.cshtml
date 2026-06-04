@@ -1,0 +1,267 @@
+@model WorkOrderDetailViewModel
+
+@{
+    ViewData["Title"] = $"Work Order - {Model.JCN}";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>@Model.JCN</h1>
+            <p class="text-muted">Work Order Detail</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Work Order Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Work Order Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>JCN:</strong>
+                    <p>@Model.JCN</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>FRACPR:</strong>
+                    <p>@Model.FRACPR</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>MID:</strong>
+                    <p>@Model.MID</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>Tail Number:</strong>
+                    <p>@(Model.TailNumber ?? "-")</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Created Date:</strong>
+                    <p>@Model.CreatedDate.ToString("MM/dd/yyyy HH:mm")</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>Oracle Pulled On:</strong>
+                    <p>@Model.OraclePulledOn.ToString("MM/dd/yyyy HH:mm")</p>
+                </div>
+                <div class="col-md-3">
+                    <strong>Last KPI Updated:</strong>
+                    <p>@(Model.LastKpiUpdatedOn?.ToString("MM/dd/yyyy HH:mm") ?? "-")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APU Information -->
+    @if (Model.APU != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>APU Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <strong>RefDes:</strong>
+                        <p>@Model.APU.RefDes</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Part Number:</strong>
+                        <p>@Model.APU.PartNumber</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Part Serial Number:</strong>
+                        <p>@Model.APU.PartSerialNumber</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Review Status:</strong>
+                        <p>
+                            <span class="badge bg-info">@Model.APU.ReviewStatus</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Failure Code:</strong>
+                        <p>@(Model.APU.FailureCode?.ToString() ?? "-")</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Removal Indicator:</strong>
+                        <p>@(Model.APU.RemovalIndicator ?? "-")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- KPI Entries -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>KPI History</h5>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#addKpiForm">Add KPI Entry</button>
+                </div>
+                <div class="card-body">
+                    <!-- Add KPI Form -->
+                    <div class="collapse mb-4" id="addKpiForm">
+                        <div class="card card-body bg-light">
+                            <form method="post" asp-action="SaveKpi" asp-route-id="@Model.Id">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="flightHours" class="form-label">Flight Hours</label>
+                                        <input type="number" step="0.01" class="form-control" id="flightHours" name="flightHours" placeholder="0.00">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="otherHours" class="form-label">Other Hours</label>
+                                        <input type="number" step="0.01" class="form-control" id="otherHours" name="otherHours" placeholder="0.00">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="opTime" class="form-label">Op Time</label>
+                                        <input type="number" step="0.01" class="form-control" id="opTime" name="opTime" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="notes" class="form-label">Notes</label>
+                                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Optional notes"></textarea>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save KPI Entry</button>
+                                <button type="reset" class="btn btn-secondary">Clear</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- KPI Entries List -->
+                    @if (Model.KpiEntries.Count == 0)
+                    {
+                        <p class="text-muted">No KPI entries recorded</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Entered On</th>
+                                        <th>Flight Hours</th>
+                                        <th>Other Hours</th>
+                                        <th>Op Time</th>
+                                        <th>Source</th>
+                                        <th>Entered By</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var kpi in Model.KpiEntries)
+                                    {
+                                        <tr class="@kpi.CssClass">
+                                            <td>@kpi.EnteredOn.ToString("MM/dd/yyyy HH:mm")</td>
+                                            <td>@(kpi.FlightHours?.ToString("F2") ?? "-")</td>
+                                            <td>@(kpi.OtherHours?.ToString("F2") ?? "-")</td>
+                                            <td>@(kpi.OpTime?.ToString("F2") ?? "-")</td>
+                                            <td>@kpi.Source</td>
+                                            <td>@kpi.EnteredBy</td>
+                                            <td>@(kpi.Notes ?? "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Audit Trail -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Audit Trail</h5>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    @if (Model.AuditLogs.Count == 0)
+                    {
+                        <p class="text-muted small">No audit history</p>
+                    }
+                    else
+                    {
+                        <div class="timeline">
+                            @foreach (var audit in Model.AuditLogs)
+                            {
+                                <div class="audit-entry mb-3 pb-3 border-bottom small">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>@audit.ChangeType</strong>
+                                        <small class="text-muted">@audit.ChangedOn.ToString("MM/dd HH:mm")</small>
+                                    </div>
+                                    <div class="text-muted">
+                                        <small>By: @audit.ChangedBy</small>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(audit.FieldName))
+                                    {
+                                        <div class="mt-1">
+                                            <small><strong>@audit.FieldName</strong></small>
+                                            <br>
+                                            <small>
+                                                @if (!string.IsNullOrEmpty(audit.OldValue))
+                                                {
+                                                    <span class="text-danger">@audit.OldValue</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">(no previous value)</span>
+                                                }
+                                                <span class="mx-1">→</span>
+                                                @if (!string.IsNullOrEmpty(audit.NewValue))
+                                                {
+                                                    <span class="text-success">@audit.NewValue</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">(cleared)</span>
+                                                }
+                                            </small>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-hide alerts after 5 seconds
+        document.querySelectorAll('.alert').forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
+    </script>
+}

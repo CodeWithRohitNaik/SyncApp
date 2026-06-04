@@ -1,0 +1,194 @@
+@model WorkOrderListViewModel
+
+@{
+    ViewData["Title"] = "Work Orders";
+    var totalPages = Math.Ceiling((decimal)Model.TotalCount / Model.PageSize);
+}
+
+<div class="container-fluid mt-4">
+    <h1>Work Orders</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3">
+                <div class="col-md-2">
+                    <label for="jcn" class="form-label">JCN</label>
+                    <input type="text" class="form-control" id="jcn" name="jcn" value="@Model.JCN" placeholder="Enter JCN">
+                </div>
+                <div class="col-md-2">
+                    <label for="fracpr" class="form-label">FRACPR</label>
+                    <input type="text" class="form-control" id="fracpr" name="fracpr" value="@Model.FRACPR" placeholder="Enter FRACPR">
+                </div>
+                <div class="col-md-2">
+                    <label for="mid" class="form-label">MID</label>
+                    <input type="text" class="form-control" id="mid" name="mid" value="@Model.MID" placeholder="Enter MID">
+                </div>
+                <div class="col-md-2">
+                    <label for="tailNumber" class="form-label">Tail Number</label>
+                    <input type="text" class="form-control" id="tailNumber" name="tailNumber" value="@Model.TailNumber" placeholder="Enter Tail Number">
+                </div>
+                <div class="col-md-2">
+                    <label for="fromDate" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="fromDate" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label for="toDate" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="toDate" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-12 d-flex gap-2 align-items-end">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <a href="@Url.Action("Index")" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="mb-3">
+        <form method="post" asp-action="Export" class="d-inline">
+            <input type="hidden" name="jcn" value="@Model.JCN">
+            <input type="hidden" name="fracpr" value="@Model.FRACPR">
+            <input type="hidden" name="mid" value="@Model.MID">
+            <input type="hidden" name="tailNumber" value="@Model.TailNumber">
+            <input type="hidden" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")">
+            <input type="hidden" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")">
+            <button type="submit" class="btn btn-success">Export to Excel</button>
+        </form>
+    </div>
+
+    <!-- Work Orders Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>JCN</th>
+                        <th>FRACPR</th>
+                        <th>MID</th>
+                        <th>Tail Number</th>
+                        <th>Created Date</th>
+                        <th>Latest KPI (Hrs)</th>
+                        <th>Last Updated</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.WorkOrders.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4">No work orders found</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.WorkOrders)
+                        {
+                            <tr>
+                                <td>@item.JCN</td>
+                                <td>@item.FRACPR</td>
+                                <td>@item.MID</td>
+                                <td>@item.TailNumber</td>
+                                <td>@item.CreatedDate.ToString("MM/dd/yyyy")</td>
+                                <td class="@item.CssClass">
+                                    @if (item.FlightHours.HasValue)
+                                    {
+                                        <span>@item.FlightHours.Value.ToString("F2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.LastKpiUpdatedOn.HasValue)
+                                    {
+                                        @item.LastKpiUpdatedOn.Value.ToString("MM/dd/yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not updated</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="Detail" asp-route-id="@item.Id" class="btn btn-sm btn-primary">View</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                @if (Model.CurrentPage > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Index" asp-route-page="1" asp-route-jcn="@Model.JCN" asp-route-fracpr="@Model.FRACPR" asp-route-mid="@Model.MID" asp-route-tailNumber="@Model.TailNumber">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)" asp-route-jcn="@Model.JCN" asp-route-fracpr="@Model.FRACPR" asp-route-mid="@Model.MID" asp-route-tailNumber="@Model.TailNumber">Previous</a>
+                    </li>
+                }
+
+                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min((int)totalPages, Model.CurrentPage + 2); i++)
+                {
+                    @if (i == Model.CurrentPage)
+                    {
+                        <li class="page-item active"><span class="page-link">@i</span></li>
+                    }
+                    else
+                    {
+                        <li class="page-item">
+                            <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-jcn="@Model.JCN" asp-route-fracpr="@Model.FRACPR" asp-route-mid="@Model.MID" asp-route-tailNumber="@Model.TailNumber">@i</a>
+                        </li>
+                    }
+                }
+
+                @if (Model.CurrentPage < totalPages)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)" asp-route-jcn="@Model.JCN" asp-route-fracpr="@Model.FRACPR" asp-route-mid="@Model.MID" asp-route-tailNumber="@Model.TailNumber">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Index" asp-route-page="@((int)totalPages)" asp-route-jcn="@Model.JCN" asp-route-fracpr="@Model.FRACPR" asp-route-mid="@Model.MID" asp-route-tailNumber="@Model.TailNumber">Last</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+
+    <div class="mt-2 text-muted">
+        <small>Showing @((Model.CurrentPage - 1) * Model.PageSize + 1) to @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount) of @Model.TotalCount records</small>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Add any client-side validation or interactivity here
+    </script>
+}
