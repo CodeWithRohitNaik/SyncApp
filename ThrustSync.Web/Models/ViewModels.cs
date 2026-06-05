@@ -45,6 +45,8 @@ public class WorkOrderItemViewModel
     public DateTime CreatedDate { get; set; }
     public DateTime OraclePulledOn { get; set; }
     public DateTime? LastKpiUpdatedOn { get; set; }
+    public string? HMC { get; set; }
+    public string? FAC { get; set; }
 
     // Latest KPI values
     public decimal? FlightHours { get; set; }
@@ -69,6 +71,8 @@ public class WorkOrderDetailViewModel
     public DateTime CreatedDate { get; set; }
     public DateTime OraclePulledOn { get; set; }
     public DateTime? LastKpiUpdatedOn { get; set; }
+    public string? HMC { get; set; }
+    public string? FAC { get; set; }
 
     // APU details (readonly)
     public ApuDetailViewModel? APU { get; set; }

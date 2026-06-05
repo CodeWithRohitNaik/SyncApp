@@ -86,6 +86,8 @@
                         <th>FRACPR</th>
                         <th>MID</th>
                         <th>Tail Number</th>
+                        <th>HMC</th>
+                        <th>FAC</th>
                         <th>Created Date</th>
                         <th>Latest KPI (Hrs)</th>
                         <th>Last Updated</th>
@@ -96,7 +98,7 @@
                     @if (Model.WorkOrders.Count == 0)
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-4">No work orders found</td>
+                            <td colspan="10" class="text-center py-4">No work orders found</td>
                         </tr>
                     }
                     else
@@ -108,6 +110,8 @@
                                 <td>@item.FRACPR</td>
                                 <td>@item.MID</td>
                                 <td>@item.TailNumber</td>
+                                <td>@(item.HMC ?? "-")</td>
+                                <td>@(item.FAC ?? "-")</td>
                                 <td>@item.CreatedDate.ToString("MM/dd/yyyy")</td>
                                 <td class="@item.CssClass">
                                     @if (item.FlightHours.HasValue)

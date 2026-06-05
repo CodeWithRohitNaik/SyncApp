@@ -29,6 +29,12 @@ public class WorkOrder
     /// <summary>Timestamp when data was pulled from Oracle</summary>
     public DateTime OraclePulledOn { get; set; }
     
+    /// <summary>Hours Maintenance Code (HMC)</summary>
+    public string? HMC { get; set; }
+    
+    /// <summary>Facility Code (FAC)</summary>
+    public string? FAC { get; set; }
+    
     /// <summary>Navigation property to APU</summary>
     public virtual APU? APU { get; set; }
     

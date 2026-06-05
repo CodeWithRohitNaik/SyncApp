@@ -81,6 +81,8 @@ public class WorkOrderController : Controller
                     CreatedDate = workOrder.CreatedDate,
                     OraclePulledOn = workOrder.OraclePulledOn,
                     LastKpiUpdatedOn = workOrder.LastKpiUpdatedOn,
+                    HMC = workOrder.HMC,
+                    FAC = workOrder.FAC,
                     FlightHours = latestKpi?.FlightHours,
                     OtherHours = latestKpi?.OtherHours,
                     OpTime = latestKpi?.OpTime,
@@ -123,7 +125,9 @@ public class WorkOrderController : Controller
                 TailNumber = workOrder.TailNumber,
                 CreatedDate = workOrder.CreatedDate,
                 OraclePulledOn = workOrder.OraclePulledOn,
-                LastKpiUpdatedOn = workOrder.LastKpiUpdatedOn
+                LastKpiUpdatedOn = workOrder.LastKpiUpdatedOn,
+                HMC = workOrder.HMC,
+                FAC = workOrder.FAC
             };
 
             // Map APU

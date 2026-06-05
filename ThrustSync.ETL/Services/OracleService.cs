@@ -37,21 +37,24 @@ public class OracleService : IOracleService
                 await connection.OpenAsync();
 
                 var query = @"
-                    SELECT 
-                        JCN, FRACPR, MID, TAIL_NUMBER, REFDES, PART_NUMBER, 
-                        PART_SERIAL_NUMBER, FAIL, RMVL, REVIEW_STATUS, 
-                        CREATED_DATE, UPDATED_DATE
-                    FROM FLAGGED_ITEMS
-                    WHERE REFDES = '4910AA001' 
-                    AND (RMVL = 'R' OR FAIL = 6)
-                    AND REVIEW_STATUS IN ('C', 'Y')";
+                    SELECT a.fracpr, a.jcn, a.ajcn, a.refdes, a.wuc, a.mid, c.cus_des_fmt AS tail_number,
+                           b.discrepancy, b.corr_action AS corrective_action, a.typefail, a.removal, a.review_status,
+                           a.part_nbr, a.part_serial_nbr, a.mx_dt, a.hmc, a.fac
+                    FROM matweb01.c17_aeh_tbl a
+                    JOIN matweb01.c17_comment_tbl b 
+                        ON a.fracpr = b.fracpr
+                    LEFT JOIN matweb01.c17_aircraft_def c 
+                        ON a.mid = c.mid
+                    WHERE a.refdes = '4910AA001'
+                      AND (a.removal = 'R' OR a.typefail = '6')
+                      AND a.review_status IN ('C','Y')";
 
                 if (sinceDate.HasValue)
                 {
-                    query += " AND UPDATED_DATE >= :SinceDate";
+                    query += " AND a.mx_dt >= :SinceDate";
                 }
 
-                query += " ORDER BY CREATED_DATE DESC";
+                query += " ORDER BY a.mx_dt DESC";
 
                 using (var command = new OracleCommand(query, connection))
                 {
@@ -98,20 +101,22 @@ public class OracleService : IOracleService
             {
                 var workOrder = new WorkOrder
                 {
-                    JCN = GetStringValue(record, "JCN"),
-                    FRACPR = GetStringValue(record, "FRACPR"),
-                    MID = GetStringValue(record, "MID"),
-                    TailNumber = GetStringValue(record, "TAIL_NUMBER"),
-                    CreatedDate = GetDateTimeValue(record, "CREATED_DATE") ?? DateTime.UtcNow,
+                    JCN = GetStringValue(record, "jcn"),
+                    FRACPR = GetStringValue(record, "fracpr"),
+                    MID = GetStringValue(record, "mid"),
+                    TailNumber = GetStringValue(record, "tail_number"),
+                    CreatedDate = GetDateTimeValue(record, "mx_dt") ?? DateTime.UtcNow,
                     OraclePulledOn = DateTime.UtcNow,
+                    HMC = GetStringValue(record, "hmc"),
+                    FAC = GetStringValue(record, "fac"),
                     APU = new APU
                     {
-                        RefDes = GetStringValue(record, "REFDES"),
-                        PartNumber = GetStringValue(record, "PART_NUMBER"),
-                        PartSerialNumber = GetStringValue(record, "PART_SERIAL_NUMBER"),
-                        FailureCode = GetIntValue(record, "FAIL"),
-                        RemovalIndicator = GetStringValue(record, "RMVL"),
-                        ReviewStatus = GetStringValue(record, "REVIEW_STATUS")
+                        RefDes = GetStringValue(record, "refdes"),
+                        PartNumber = GetStringValue(record, "part_nbr"),
+                        PartSerialNumber = GetStringValue(record, "part_serial_nbr"),
+                        FailureCode = GetIntValue(record, "typefail"),
+                        RemovalIndicator = GetStringValue(record, "removal"),
+                        ReviewStatus = GetStringValue(record, "review_status")
                     },
                     OracleSnapshot = new OracleSnapshot
                     {
