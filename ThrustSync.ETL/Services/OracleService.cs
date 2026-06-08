@@ -67,10 +67,12 @@ public class OracleService : IOracleService
                     {
                         while (await reader.ReadAsync())
                         {
-                            var record = new Dictionary<string, object>();
+                            var record = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                             for (int i = 0; i < reader.FieldCount; i++)
                             {
-                                record[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                // Normalize column names to lowercase for case-insensitive lookup
+                                var columnName = reader.GetName(i).ToLower();
+                                record[columnName] = reader.IsDBNull(i) ? null : reader.GetValue(i);
                             }
                             records.Add(record);
                             
