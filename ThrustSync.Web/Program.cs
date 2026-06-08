@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Hangfire;
+using Hangfire.Console;
 using Azure.Identity;
 using ThrustSync.Data.Context;
 using ThrustSync.Data.Repositories;
@@ -81,7 +82,8 @@ builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddHangfire(config =>
 {
     config.UseSqlServerStorage(sqlConnectionString)
-        .WithJobExpirationTimeout(TimeSpan.FromDays(7));
+        .WithJobExpirationTimeout(TimeSpan.FromDays(7))
+        .UseConsole();
 });
 
 builder.Services.AddHangfireServer(options =>
@@ -179,7 +181,7 @@ using (var scope = app.Services.CreateScope())
         // Schedule daily Oracle ETL at 2 AM UTC
         recurringJobManager.AddOrUpdate<OracleEtlJob>(
             "oracle-etl-daily",
-            job => job.ExecuteAsync(),
+            job => job.ExecuteAsync(null),
             "0 2 * * *", // Cron expression: 2 AM daily
             new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc }
         );
