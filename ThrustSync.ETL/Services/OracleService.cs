@@ -73,6 +73,16 @@ public class OracleService : IOracleService
                                 record[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
                             }
                             records.Add(record);
+                            
+                            // Log first few records' FRACPR values for debugging
+                            if (records.Count <= 5)
+                            {
+                                var fracpr = record.TryGetValue("fracpr", out var val) ? val?.ToString() : "NULL";
+                                _logger.LogInformation("Record {Count}: FRACPR={FRACPR}, JCN={JCN}, MID={MID}", 
+                                    records.Count, fracpr, 
+                                    record.TryGetValue("jcn", out var jcn) ? jcn?.ToString() : "NULL",
+                                    record.TryGetValue("mid", out var mid) ? mid?.ToString() : "NULL");
+                            }
                         }
                     }
                 }
@@ -99,11 +109,22 @@ public class OracleService : IOracleService
         {
             try
             {
+                var fracpr = GetStringValue(record, "fracpr");
+                var jcn = GetStringValue(record, "jcn");
+                var mid = GetStringValue(record, "mid");
+                
+                // Log first few transformed records for debugging
+                if (workOrders.Count < 5)
+                {
+                    _logger.LogInformation("Transforming record {Count}: FRACPR={FRACPR}, JCN={JCN}, MID={MID}", 
+                        workOrders.Count + 1, fracpr, jcn, mid);
+                }
+                
                 var workOrder = new WorkOrder
                 {
-                    JCN = GetStringValue(record, "jcn"),
-                    FRACPR = GetStringValue(record, "fracpr"),
-                    MID = GetStringValue(record, "mid"),
+                    JCN = jcn,
+                    FRACPR = fracpr,
+                    MID = mid,
                     TailNumber = GetStringValue(record, "tail_number"),
                     CreatedDate = GetDateTimeValue(record, "mx_dt") ?? DateTime.UtcNow,
                     OraclePulledOn = DateTime.UtcNow,
@@ -136,6 +157,10 @@ public class OracleService : IOracleService
 
         _logger.LogInformation("Successfully transformed {Count} records into {WorkOrderCount} work orders",
             oracleData.Count, workOrders.Count);
+        
+        // Log sample of unique FRACPRs for verification
+        var uniqueFracprs = workOrders.Select(w => w.FRACPR).Distinct().Count();
+        _logger.LogInformation("Unique FRACPR values in transformed data: {UniqueCount}/{TotalCount}", uniqueFracprs, workOrders.Count);
 
         return workOrders;
     }

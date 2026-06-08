@@ -84,19 +84,38 @@ public class OracleEtlJob
             int updateCount = 0;
             int insertCount = 0;
             
+            // Log sample FRACPR values for debugging
+            var sampleFracprs = workOrders.Take(5).Select(w => w.FRACPR).ToList();
+            context.WriteLine($"Sample FRACPRs from first 5 records: {string.Join(", ", sampleFracprs)}", ConsoleTextColor.Cyan);
+            _logger.LogInformation("Sample FRACPRs from first 5 records: {FRACPRs}", string.Join(", ", sampleFracprs));
+            
             foreach (var workOrder in workOrders)
             {
                 try
                 {
+                    if (string.IsNullOrWhiteSpace(workOrder.FRACPR))
+                    {
+                        errorCount++;
+                        var msg = $"ERROR: Record {upsertCount + 1} has empty FRACPR - skipping";
+                        context.WriteLine(msg, ConsoleTextColor.Red);
+                        _logger.LogWarning("Skipping record with empty FRACPR: JCN={JCN}, MID={MID}", workOrder.JCN, workOrder.MID);
+                        continue;
+                    }
+
                     // Log each record being processed
-                    _logger.LogDebug("Processing record {Current}/{Total}: FRACPR={FRACPR}", upsertCount + 1, workOrders.Count, workOrder.FRACPR);
+                    _logger.LogDebug("Processing record {Current}/{Total}: FRACPR={FRACPR}, JCN={JCN}, MID={MID}", 
+                        upsertCount + 1, workOrders.Count, workOrder.FRACPR, workOrder.JCN, workOrder.MID);
                     
                     // Check if workorder exists by FRACPR (composite key)
+                    _logger.LogDebug("Checking if FRACPR exists in database: {FRACPR}", workOrder.FRACPR);
                     var existing = await _workOrderRepository.FirstOrDefaultAsync(
                         w => w.FRACPR == workOrder.FRACPR);
 
                     if (existing != null)
                     {
+                        _logger.LogDebug("Found existing record for FRACPR={FRACPR}, existing ID={ID}, existing JCN={JCN}", 
+                            workOrder.FRACPR, existing.Id, existing.JCN);
+                        
                         // Update existing
                         existing.JCN = workOrder.JCN;
                         existing.MID = workOrder.MID;
@@ -117,6 +136,8 @@ public class OracleEtlJob
                     }
                     else
                     {
+                        _logger.LogDebug("No existing record found for FRACPR={FRACPR} - creating new record", workOrder.FRACPR);
+                        
                         // Insert new
                         await _workOrderRepository.AddAsync(workOrder);
                         insertCount++;
