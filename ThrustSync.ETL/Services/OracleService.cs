@@ -104,6 +104,7 @@ public class OracleService : IOracleService
     public List<WorkOrder> TransformOracleData(List<Dictionary<string, object>> oracleData)
     {
         var workOrders = new List<WorkOrder>();
+        var jcnsSeen = new HashSet<string>();
 
         _logger.LogInformation("Transforming {Count} Oracle records", oracleData.Count);
 
@@ -114,6 +115,13 @@ public class OracleService : IOracleService
                 var fracpr = GetStringValue(record, "fracpr");
                 var jcn = GetStringValue(record, "jcn");
                 var mid = GetStringValue(record, "mid");
+                
+                // Check for duplicate JCN in the same batch
+                if (jcnsSeen.Contains(jcn))
+                {
+                    _logger.LogWarning("DUPLICATE JCN found in Oracle data: JCN={JCN}, FRACPR={FRACPR}", jcn, fracpr);
+                }
+                jcnsSeen.Add(jcn);
                 
                 // Log first few transformed records for debugging
                 if (workOrders.Count < 5)
@@ -160,9 +168,11 @@ public class OracleService : IOracleService
         _logger.LogInformation("Successfully transformed {Count} records into {WorkOrderCount} work orders",
             oracleData.Count, workOrders.Count);
         
-        // Log sample of unique FRACPRs for verification
+        // Log sample of unique JCNs for verification
+        var uniqueJcns = workOrders.Select(w => w.JCN).Distinct().Count();
         var uniqueFracprs = workOrders.Select(w => w.FRACPR).Distinct().Count();
-        _logger.LogInformation("Unique FRACPR values in transformed data: {UniqueCount}/{TotalCount}", uniqueFracprs, workOrders.Count);
+        _logger.LogInformation("Data after transformation - Unique JCNs: {UniqueJcns}/{Total}, Unique FRACPRs: {UniqueFracprs}/{Total}", 
+            uniqueJcns, workOrders.Count, uniqueFracprs, workOrders.Count);
 
         return workOrders;
     }
