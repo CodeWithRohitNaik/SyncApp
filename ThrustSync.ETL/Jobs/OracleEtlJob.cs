@@ -3,6 +3,7 @@ using ThrustSync.Data.Repositories;
 using ThrustSync.ETL.Services;
 using Microsoft.Extensions.Logging;
 using ThrustSync.Core.Repositories;
+using Hangfire;
 
 namespace ThrustSync.ETL.Jobs;
 
@@ -29,6 +30,7 @@ public class OracleEtlJob
     /// <summary>
     /// Main ETL job that executes daily to sync Oracle data to Azure SQL
     /// </summary>
+    [AutomaticRetry(Attempts = 0)]
     public async Task ExecuteAsync()
     {
         _logger.LogInformation("Starting Oracle ETL job at {Timestamp}", DateTime.UtcNow);
@@ -58,8 +60,8 @@ public class OracleEtlJob
             // Step 3: Transform Oracle data
             var workOrders = _oracleService.TransformOracleData(oracleRecords);
 
-            // Step 4: Upsert into Azure SQL (idempotent operation using FRACPR as key)
-            _logger.LogInformation("Upserting {Count} work orders into database", workOrders.Count);
+            // Step 4: Upsert into Azure SQL with immediate commits (idempotent operation using FRACPR as key)
+            _logger.LogInformation("Upserting {Count} work orders into database with immediate commits", workOrders.Count);
 
             int upsertCount = 0;
             foreach (var workOrder in workOrders)
@@ -96,7 +98,11 @@ public class OracleEtlJob
                         _logger.LogDebug("Created new workorder: FRACPR={FRACPR}, JCN={JCN}", workOrder.FRACPR, workOrder.JCN);
                     }
 
+                    // Commit immediately after each record to free memory and prevent large transaction locks
+                    await _workOrderRepository.SaveChangesAsync();
                     upsertCount++;
+
+                    _logger.LogDebug("Committed record {Count}/{Total}", upsertCount, workOrders.Count);
                 }
                 catch (Exception ex)
                 {
@@ -104,9 +110,6 @@ public class OracleEtlJob
                     // Continue processing other records
                 }
             }
-
-            // Step 5: Commit all changes
-            await _workOrderRepository.SaveChangesAsync();
 
             _logger.LogInformation(
                 "Oracle ETL job completed successfully: Upserted={Count}, Timestamp={Timestamp}",
@@ -143,16 +146,27 @@ public class OracleEtlJob
             int updateCount = 0;
             foreach (var workOrder in workOrders)
             {
-                var existing = await _workOrderRepository.FirstOrDefaultAsync(w => w.FRACPR == workOrder.FRACPR);
-                if (existing != null)
+                try
                 {
-                    existing.OraclePulledOn = DateTime.UtcNow;
-                    _workOrderRepository.Update(existing);
-                    updateCount++;
+                    var existing = await _workOrderRepository.FirstOrDefaultAsync(w => w.FRACPR == workOrder.FRACPR);
+                    if (existing != null)
+                    {
+                        existing.OraclePulledOn = DateTime.UtcNow;
+                        _workOrderRepository.Update(existing);
+                        
+                        // Commit immediately after each record
+                        await _workOrderRepository.SaveChangesAsync();
+                        updateCount++;
+                        
+                        _logger.LogDebug("Updated record {Count}", updateCount);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating workorder: FRACPR={FRACPR}", workOrder.FRACPR);
+                    // Continue processing other records
                 }
             }
-
-            await _workOrderRepository.SaveChangesAsync();
 
             _logger.LogInformation(
                 "Incremental Oracle ETL completed: Updated={Count}, Timestamp={Timestamp}",
