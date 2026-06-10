@@ -138,6 +138,31 @@ public class OracleEtlJob
                     {
                         _logger.LogDebug("No existing record found for FRACPR={FRACPR} - creating new record", workOrder.FRACPR);
                         
+                        // Before inserting, check if APU already exists to avoid duplicate key violations
+                        if (workOrder.APU != null)
+                        {
+                            var existingApu = await _workOrderRepository.FirstOrDefaultAsync(w => 
+                                w.APU != null && 
+                                w.APU.RefDes == workOrder.APU.RefDes && 
+                                w.APU.PartNumber == workOrder.APU.PartNumber && 
+                                w.APU.PartSerialNumber == workOrder.APU.PartSerialNumber);
+                            
+                            if (existingApu?.APU != null)
+                            {
+                                _logger.LogDebug("APU already exists: RefDes={RefDes}, PartNumber={PartNumber}, PartSerialNumber={PartSerialNumber}. Linking to existing APU ID={ApuId}", 
+                                    workOrder.APU.RefDes, workOrder.APU.PartNumber, workOrder.APU.PartSerialNumber, existingApu.APU.Id);
+                                
+                                // Link to existing APU instead of creating a duplicate
+                                workOrder.APU = null;
+                                workOrder.APU = existingApu.APU;
+                            }
+                            else
+                            {
+                                _logger.LogDebug("Creating new APU: RefDes={RefDes}, PartNumber={PartNumber}", 
+                                    workOrder.APU.RefDes, workOrder.APU.PartNumber);
+                            }
+                        }
+                        
                         // Insert new
                         await _workOrderRepository.AddAsync(workOrder);
                         insertCount++;
@@ -218,6 +243,15 @@ public class OracleEtlJob
                     if (existing != null)
                     {
                         existing.OraclePulledOn = DateTime.UtcNow;
+                        
+                        // Update APU if exists
+                        if (workOrder.APU != null && existing.APU != null)
+                        {
+                            existing.APU.FailureCode = workOrder.APU.FailureCode;
+                            existing.APU.RemovalIndicator = workOrder.APU.RemovalIndicator;
+                            existing.APU.ReviewStatus = workOrder.APU.ReviewStatus;
+                        }
+                        
                         _workOrderRepository.Update(existing);
                         
                         // Commit immediately after each record
