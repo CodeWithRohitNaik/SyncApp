@@ -19,15 +19,18 @@ public class OracleEtlJob
 {
     private readonly IOracleService _oracleService;
     private readonly IWorkOrderRepository _workOrderRepository;
+    private readonly IApuRepository _apuRepository;
     private readonly ILogger<OracleEtlJob> _logger;
 
     public OracleEtlJob(
         IOracleService oracleService,
         IWorkOrderRepository workOrderRepository,
+        IApuRepository apuRepository,
         ILogger<OracleEtlJob> logger)
     {
         _oracleService = oracleService ?? throw new ArgumentNullException(nameof(oracleService));
         _workOrderRepository = workOrderRepository ?? throw new ArgumentNullException(nameof(workOrderRepository));
+        _apuRepository = apuRepository ?? throw new ArgumentNullException(nameof(apuRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -134,45 +137,44 @@ public class OracleEtlJob
                         _workOrderRepository.Update(existing);
                         updateCount++;
                         _logger.LogDebug("UPDATED: FRACPR={FRACPR}, JCN={JCN}", workOrder.FRACPR, workOrder.JCN);
+                        
+                        // Commit immediately after each record to free memory and prevent large transaction locks
+                        await _workOrderRepository.SaveChangesAsync();
+                        upsertCount++;
                     }
                     else
                     {
                         _logger.LogDebug("No existing record found for FRACPR={FRACPR} - creating new record", workOrder.FRACPR);
                         
-                        // Handle APU: check if it already exists and link to it, or create new
+                        // Handle APU: get or create using the APU repository
                         if (workOrder.APU != null)
                         {
-                            var existingApu = await _workOrderRepository.FirstOrDefaultAsync(w => 
-                                w.APU != null && 
-                                w.APU.RefDes == workOrder.APU.RefDes && 
-                                w.APU.PartNumber == workOrder.APU.PartNumber && 
-                                w.APU.PartSerialNumber == workOrder.APU.PartSerialNumber);
+                            var apu = await _apuRepository.GetOrCreateAsync(
+                                workOrder.APU.RefDes,
+                                workOrder.APU.PartNumber,
+                                workOrder.APU.PartSerialNumber,
+                                workOrder.APU.FailureCode,
+                                workOrder.APU.RemovalIndicator,
+                                workOrder.APU.ReviewStatus);
                             
-                            if (existingApu?.APU != null)
-                            {
-                                // Link to existing APU
-                                _logger.LogDebug("Linking to existing APU ID={ApuId}: RefDes={RefDes}, PartNumber={PartNumber}", 
-                                    existingApu.APU.Id, existingApu.APU.RefDes, existingApu.APU.PartNumber);
-                                workOrder.ApuId = existingApu.APU.Id;
-                                workOrder.APU = null; // Clear to avoid EF tracking issues
-                            }
-                            else
-                            {
-                                _logger.LogDebug("Creating new APU: RefDes={RefDes}, PartNumber={PartNumber}, PartSerialNumber={PartSerialNumber}", 
-                                    workOrder.APU.RefDes, workOrder.APU.PartNumber, workOrder.APU.PartSerialNumber);
-                                // APU will be inserted with the WorkOrder
-                            }
+                            // Save APU if it was newly created
+                            await _apuRepository.SaveChangesAsync();
+                            
+                            _logger.LogDebug("APU ID={ApuId}: RefDes={RefDes}, PartNumber={PartNumber}", 
+                                apu.Id, apu.RefDes, apu.PartNumber);
+                            
+                            // Link WorkOrder to the APU
+                            workOrder.ApuId = apu.Id;
+                            workOrder.APU = null; // Clear to avoid EF tracking issues
                         }
                         
-                        // Insert new
+                        // Insert new WorkOrder
                         await _workOrderRepository.AddAsync(workOrder);
+                        await _workOrderRepository.SaveChangesAsync();
                         insertCount++;
+                        upsertCount++;
                         _logger.LogDebug("INSERTED: FRACPR={FRACPR}, JCN={JCN}", workOrder.FRACPR, workOrder.JCN);
                     }
-
-                    // Commit immediately after each record to free memory and prevent large transaction locks
-                    await _workOrderRepository.SaveChangesAsync();
-                    upsertCount++;
 
                     if (upsertCount % 100 == 0)
                     {
@@ -246,11 +248,17 @@ public class OracleEtlJob
                         existing.OraclePulledOn = DateTime.UtcNow;
                         
                         // Update APU if exists
-                        if (workOrder.APU != null && existing.APU != null)
+                        if (workOrder.APU != null && existing.ApuId.HasValue)
                         {
-                            existing.APU.FailureCode = workOrder.APU.FailureCode;
-                            existing.APU.RemovalIndicator = workOrder.APU.RemovalIndicator;
-                            existing.APU.ReviewStatus = workOrder.APU.ReviewStatus;
+                            var apu = await _apuRepository.GetByIdAsync(existing.ApuId.Value);
+                            if (apu != null)
+                            {
+                                apu.FailureCode = workOrder.APU.FailureCode;
+                                apu.RemovalIndicator = workOrder.APU.RemovalIndicator;
+                                apu.ReviewStatus = workOrder.APU.ReviewStatus;
+                                _apuRepository.Update(apu);
+                                await _apuRepository.SaveChangesAsync();
+                            }
                         }
                         
                         _workOrderRepository.Update(existing);

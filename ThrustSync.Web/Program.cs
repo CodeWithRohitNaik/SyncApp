@@ -63,6 +63,7 @@ builder.Services.AddApplicationInsightsTelemetry(options =>
 builder.Services.AddScoped<IRepository<AuditLog>, Repository<AuditLog>>();
 builder.Services.AddScoped<IRepository<ExportLog>, Repository<ExportLog>>();
 builder.Services.AddScoped<IWorkOrderRepository, WorkOrderRepository>();
+builder.Services.AddScoped<IApuRepository, ApuRepository>();
 builder.Services.AddScoped<IKpiEntryRepository, KpiEntryRepository>();
 
 // Core Services
