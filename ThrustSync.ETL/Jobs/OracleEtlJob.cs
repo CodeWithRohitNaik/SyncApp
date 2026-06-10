@@ -7,6 +7,7 @@ using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace ThrustSync.ETL.Jobs;
 
@@ -138,7 +139,7 @@ public class OracleEtlJob
                     {
                         _logger.LogDebug("No existing record found for FRACPR={FRACPR} - creating new record", workOrder.FRACPR);
                         
-                        // Before inserting, check if APU already exists to avoid duplicate key violations
+                        // Handle APU: check if it already exists and link to it, or create new
                         if (workOrder.APU != null)
                         {
                             var existingApu = await _workOrderRepository.FirstOrDefaultAsync(w => 
@@ -149,17 +150,17 @@ public class OracleEtlJob
                             
                             if (existingApu?.APU != null)
                             {
-                                _logger.LogDebug("APU already exists: RefDes={RefDes}, PartNumber={PartNumber}, PartSerialNumber={PartSerialNumber}. Linking to existing APU ID={ApuId}", 
-                                    workOrder.APU.RefDes, workOrder.APU.PartNumber, workOrder.APU.PartSerialNumber, existingApu.APU.Id);
-                                
-                                // Link to existing APU instead of creating a duplicate
-                                workOrder.APU = null;
-                                workOrder.APU = existingApu.APU;
+                                // Link to existing APU
+                                _logger.LogDebug("Linking to existing APU ID={ApuId}: RefDes={RefDes}, PartNumber={PartNumber}", 
+                                    existingApu.APU.Id, existingApu.APU.RefDes, existingApu.APU.PartNumber);
+                                workOrder.ApuId = existingApu.APU.Id;
+                                workOrder.APU = null; // Clear to avoid EF tracking issues
                             }
                             else
                             {
-                                _logger.LogDebug("Creating new APU: RefDes={RefDes}, PartNumber={PartNumber}", 
-                                    workOrder.APU.RefDes, workOrder.APU.PartNumber);
+                                _logger.LogDebug("Creating new APU: RefDes={RefDes}, PartNumber={PartNumber}, PartSerialNumber={PartSerialNumber}", 
+                                    workOrder.APU.RefDes, workOrder.APU.PartNumber, workOrder.APU.PartSerialNumber);
+                                // APU will be inserted with the WorkOrder
                             }
                         }
                         

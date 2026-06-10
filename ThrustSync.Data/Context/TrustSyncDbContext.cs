@@ -64,9 +64,9 @@ public class TrustSyncDbContext : DbContext
 
             // Relationships
             entity.HasOne(e => e.APU)
-                .WithOne(a => a.WorkOrder)
-                .HasForeignKey<APU>(a => a.WorkOrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(a => a.WorkOrders)
+                .HasForeignKey(e => e.ApuId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(e => e.OracleSnapshot)
                 .WithOne(os => os.WorkOrder)

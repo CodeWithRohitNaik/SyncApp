@@ -35,6 +35,9 @@ public class WorkOrder
     /// <summary>Facility Code (FAC)</summary>
     public string? FAC { get; set; }
     
+    /// <summary>Foreign key to APU</summary>
+    public int? ApuId { get; set; }
+    
     /// <summary>Navigation property to APU</summary>
     public virtual APU? APU { get; set; }
     
@@ -74,11 +77,8 @@ public class APU
     /// <summary>Review status (C=Complete, Y=Yes, etc.)</summary>
     public string ReviewStatus { get; set; } = string.Empty;
     
-    /// <summary>Foreign key to WorkOrder</summary>
-    public int WorkOrderId { get; set; }
-    
-    /// <summary>Navigation property to WorkOrder</summary>
-    public virtual WorkOrder? WorkOrder { get; set; }
+    /// <summary>Navigation property to WorkOrders using this APU</summary>
+    public virtual ICollection<WorkOrder> WorkOrders { get; set; } = new List<WorkOrder>();
 }
 
 /// <summary>
