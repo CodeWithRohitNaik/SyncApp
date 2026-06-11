@@ -40,8 +40,8 @@ public class TrustSyncDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             
-            entity.HasIndex(e => e.JCN).IsUnique();
-            entity.HasIndex(e => e.FRACPR);
+            entity.HasIndex(e => e.JCN);
+            entity.HasIndex(e => e.FRACPR).IsUnique();
             entity.HasIndex(e => e.MID);
             entity.HasIndex(e => e.TailNumber);
             entity.HasIndex(e => e.CreatedDate);

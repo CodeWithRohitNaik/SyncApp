@@ -8,10 +8,10 @@ public class WorkOrder
     /// <summary>Primary key</summary>
     public int Id { get; set; }
     
-    /// <summary>Job Control Number (JCN) - unique identifier</summary>
+    /// <summary>Job Control Number (JCN)</summary>
     public string JCN { get; set; } = string.Empty;
     
-    /// <summary>FAA Form Release part number identifier</summary>
+    /// <summary>FAA Form Release part number identifier - unique identifier</summary>
     public string FRACPR { get; set; } = string.Empty;
     
     /// <summary>Maintenance Item Description</summary>
