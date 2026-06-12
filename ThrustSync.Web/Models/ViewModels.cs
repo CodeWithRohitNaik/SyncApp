@@ -48,6 +48,9 @@ public class WorkOrderItemViewModel
     public string? HMC { get; set; }
     public string? FAC { get; set; }
 
+    // APU information
+    public string? ApuName { get; set; }
+
     // Latest KPI values
     public decimal? FlightHours { get; set; }
     public decimal? OtherHours { get; set; }

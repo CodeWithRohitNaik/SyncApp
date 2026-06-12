@@ -86,6 +86,7 @@
                         <th>FRACPR</th>
                         <th>MID</th>
                         <th>Tail Number</th>
+                        <th>APU Name</th>
                         <th>HMC</th>
                         <th>FAC</th>
                         <th>Created Date</th>
@@ -98,7 +99,7 @@
                     @if (Model.WorkOrders.Count == 0)
                     {
                         <tr>
-                            <td colspan="10" class="text-center py-4">No work orders found</td>
+                            <td colspan="11" class="text-center py-4">No work orders found</td>
                         </tr>
                     }
                     else
@@ -110,6 +111,7 @@
                                 <td>@item.FRACPR</td>
                                 <td>@item.MID</td>
                                 <td>@item.TailNumber</td>
+                                <td>@(item.ApuName ?? "-")</td>
                                 <td>@(item.HMC ?? "-")</td>
                                 <td>@(item.FAC ?? "-")</td>
                                 <td>@item.CreatedDate.ToString("MM/dd/yyyy")</td>
