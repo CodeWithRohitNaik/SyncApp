@@ -184,9 +184,8 @@ using (var scope = app.Services.CreateScope())
             "oracle-etl-daily",
             job => job.ExecuteAsync(null),
             "0 2 * * *", // Cron expression: 2 AM daily
-            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc }
+            new RecurringJobOptions { TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time") }
         );
-
         logger.LogInformation("Hangfire jobs scheduled successfully");
     }
     catch (Exception ex)

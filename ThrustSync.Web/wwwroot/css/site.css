@@ -47,6 +47,7 @@ footer {
     border-bottom: 2px solid #dee2e6;
     font-weight: 600;
     background-color: #f8f9fa;
+    color:#212529;
 }
 
 .table-hover tbody tr:hover {
