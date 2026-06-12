@@ -87,7 +87,8 @@ public class WorkOrderController : Controller
                     OtherHours = latestKpi?.OtherHours,
                     OpTime = latestKpi?.OpTime,
                     KpiSource = latestKpi?.Source ?? "Oracle",
-                    CssClass = latestKpi?.Source == "FMxC2 Manual" ? "table-warning" : "text-muted"
+                    CssClass = latestKpi?.Source == "FMxC2 Manual" ? "table-warning" : "text-muted",
+                    ApuName = workOrder.APU?.RefDes
                 });
             }
 
